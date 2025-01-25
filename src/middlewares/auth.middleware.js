@@ -1,12 +1,12 @@
-import {asyncHandler} from "../utils/asyncHandler";
-import {ApiError} from "../utils/ApiError";
+import {asyncHandler} from "../utils/asyncHandler.js";
+import {ApiError} from "../utils/ApiError.js";
 
-import {User} from "./models/user.model";
+import {User} from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
 export const verifyJWT = asyncHandler(async(req, _, next) => {
     try {
-        const token = req.cookie?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+        const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
         if (!token) {
             throw new ApiError(401, "Not authenticated");
         }

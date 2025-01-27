@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -298,61 +298,118 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 })
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
-    
     const avatarLocalPath = req.file?.path
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Please provide avatar image")
     }
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    try {
+        // Get the current user with their avatar URL
+        const currentUser = await User.findById(req.user?._id);
+        if (!currentUser) {
+            throw new ApiError(404, "User not found")
+        }
 
-    if (!avatar.url){
-        throw new ApiError(400, "Failed to upload avatar image")
-    }
-    
-    const user = await User.findByIdAndUpdate(  
-        req.user?._id,
-        {
-            $set: {
-                avatar: avatar.url
+        // Upload new avatar
+        const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+        if (!avatar?.url){
+            throw new ApiError(400, "Failed to upload avatar image")
+        }
+        
+        // If upload successful, delete the old avatar
+        if (currentUser.avatar) {
+            try {
+                await deleteFromCloudinary(currentUser.avatar);
+            } catch (error) {
+                console.log("Error deleting old avatar:", error);
+                // Continue execution even if deletion fails
             }
-        },
-        { new: true }
-    ).select("-password")
-    
-    return res
-    .status(200)
-    .json( new ApiResponse(200, user, "User avatar successfully updated"))
+        }
+        
+        // Update user with new avatar URL
+        const user = await User.findByIdAndUpdate(  
+            req.user?._id,
+            {
+                $set: {
+                    avatar: avatar.url
+                }
+            },
+            { new: true }
+        ).select("-password")
+        
+        if (!user) {
+            throw new ApiError(500, "Failed to update user avatar")
+        }
+
+        return res
+        .status(200)
+        .json(new ApiResponse(200, user, "User avatar successfully updated"))
+
+    } catch (error) {
+        throw new ApiError(
+            error.statusCode || 500,
+            error.message || "Error while updating avatar"
+        )
+    }
 })
 
 const updateCoverImage = asyncHandler(async (req, res) => {
-    
     const coverImageLocalPath = req.file?.path
 
     if (!coverImageLocalPath) {
         throw new ApiError(400, "Please provide cover image")
     }
 
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    try {
+        // Get the current user with their cover image URL
+        const currentUser = await User.findById(req.user?._id);
+        if (!currentUser) {
+            throw new ApiError(404, "User not found")
+        }
 
-    if (!coverImage.url){
-        throw new ApiError(400, "Failed to upload cover image")
-    }
-    
-    const user = await User.findByIdAndUpdate(  
-        req.user?._id,
-        {
-            $set: {
-                coverImage: coverImage.url
+        const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+        if (!coverImage?.url){
+            throw new ApiError(400, "Failed to upload cover image")
+        }
+
+        // If upload successful, delete the old cover
+        if (currentUser.coverImage) {
+            try {
+                await deleteFromCloudinary(currentUser.coverImage);
+            } catch (error) {
+                console.log("Error deleting old cover image:", error);
+                // Continue execution even if deletion fails
             }
-        },
-        { new: true }
-    ).select("-password")
-    
-    return res
-    .status(200)
-    .json( new ApiResponse(200, user, "User cover Image successfully updated"))
+        }
+        
+        // Update user with new cover URL
+        const user = await User.findByIdAndUpdate(  
+            req.user?._id,
+            {
+                $set: {
+                    coverImage: coverImage.url
+                }
+            },
+            { new: true }
+        ).select("-password")
+        
+        if (!user) {
+            throw new ApiError(500, "Failed to update user cover image")
+        }
+
+        return res
+        .status(200)
+        .json(new ApiResponse(200, user, "User cover image successfully updated"))
+
+    } catch (error) {
+        throw new ApiError(
+            error.statusCode || 500,
+            error.message || "Error while updating cover image"
+        )
+    }
 })
 
 

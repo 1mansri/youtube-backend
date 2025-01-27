@@ -14,6 +14,7 @@ import {
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
+
 const router = Router()
 
 router.route("/register").post(
@@ -47,7 +48,7 @@ router.route("/upload-avatar").patch(
 
 router.route("/upload-cover").patch(
     verifyJWT,
-    upload.single("/coverImage"),
+    upload.single("coverImage"),
     updateCoverImage
 )
 
@@ -55,4 +56,4 @@ router.route("/c/:username").get(verifyJWT, getUserChannelProfile )
 
 router.route("/watch-history").get(verifyJWT, getWatchHistory )
 
-export default router
+export default router;
